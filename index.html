@@ -90,6 +90,7 @@
         let pollInterval;
         let isVoiceActive = false;
         let currentCommand = null; // Tracks the current active direction
+        let lastAutoToggle = 0; // Prevents the auto mode sync glitch
         const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
         
         recognition.continuous = true;
@@ -140,6 +141,7 @@
         }
 
         function toggleAuto() {
+            lastAutoToggle = Date.now(); // Record the exact time you clicked it
             isAuto = !isAuto;
             const btn = document.getElementById('autoBtn');
             if (isAuto) {
@@ -187,9 +189,21 @@
                     statusEl.classList.remove('text-orange-400');
                 }
 
-                // Sync auto button state if overridden by firmware
-                if (data.mode === "Auto" && !isAuto) toggleAuto();
-                if (data.mode === "Manual" && isAuto) toggleAuto();
+                // Sync auto button state silently (only if user hasn't clicked in the last 2.5 seconds)
+                if (Date.now() - lastAutoToggle > 2500) {
+                    const btn = document.getElementById('autoBtn');
+                    if (data.mode === "Auto" && !isAuto) {
+                        isAuto = true;
+                        btn.classList.replace('bg-purple-600', 'bg-green-500');
+                        btn.classList.replace('hover:bg-purple-700', 'hover:bg-green-600');
+                        btn.innerHTML = '<i class="fas fa-robot mr-2"></i>Auto: ON';
+                    } else if (data.mode === "Manual" && isAuto) {
+                        isAuto = false;
+                        btn.classList.replace('bg-green-500', 'bg-purple-600');
+                        btn.classList.replace('hover:bg-green-600', 'hover:bg-purple-700');
+                        btn.innerHTML = '<i class="fas fa-robot mr-2"></i>Auto: OFF';
+                    }
+                }
 
             } catch (err) {
                 document.getElementById('connectionStatus').innerText = "● Disconnected";
