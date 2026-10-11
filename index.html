@@ -95,6 +95,30 @@
         recognition.continuous = true;
         recognition.interimResults = false;
 
+        // --- NEW CODE: Automatically restart if the browser stops it due to silence ---
+        recognition.onend = () => {
+            if (isVoiceActive) {
+                try {
+                    recognition.start(); // Start listening again!
+                } catch (e) {
+                    console.error("Restarting voice recognition failed", e);
+                }
+            }
+        };
+
+        // --- NEW CODE: Handle errors safely ---
+        recognition.onerror = (event) => {
+            console.warn("Voice error:", event.error);
+            if (event.error === 'not-allowed') {
+                isVoiceActive = false;
+                const btn = document.getElementById('voiceBtn');
+                btn.classList.replace('bg-red-600', 'bg-green-600');
+                btn.classList.replace('hover:bg-red-700', 'hover:bg-green-700');
+                btn.innerHTML = '<i class="fas fa-microphone mr-2 text-xl"></i> Start Voice Control';
+                document.getElementById('voiceOutput').innerText = "Microphone access denied.";
+            }
+        };
+
         function getBaseUrl() {
             return `http://${document.getElementById('ipAddress').value}`;
         }
